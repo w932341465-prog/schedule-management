@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>值班调整记录表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .login-section {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .user-login {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .user-login input, .user-login select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .admin-login {
+            display: none;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-radius: 5px;
+            border: 1px solid #ffc107;
+        }
+        .admin-login.show {
+            display: flex;
+        }
+        .current-user {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .role-badge {
+            background-color: #4caf50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .role-badge.approver {
+            background-color: #f44336;
+        }
+        .role-badge.employee {
+            background-color: #9e9e9e;
+        }
+        .schedule-section {
+            margin-bottom: 30px;
+        }
+        .schedule-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c5aa0;
+        }
+        .original-schedule {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .schedule-table th, .schedule-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .schedule-table th {
+            background-color: #4472C4;
+            color: white;
+            font-weight: bold;
+        }
+        .time-slot {
+            background-color: #E7E6E6;
+            font-weight: bold;
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            width: 60px;
+        }
+        .adjustment-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+        }
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        .form-group input, .form-group select {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover:not(:disabled) {
+            background-color: #e0a800;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .login-prompt {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .login-prompt.show {
+            display: block;
+        }
+        .record-table {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        .record-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .record-table th {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+        .record-table td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 11px;
+        }
+        .record-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .type-调休 { background-color: #d4edda; }
+        .type-加班 { background-color: #f8d7da; }
+        .type-换班 { background-color: #d1ecf1; }
+        .type-补休 { background-color: #fff3cd; }
+        .export-btn {
+            background-color: #007bff;
+            margin-left: 10px;
+        }
+        .export-btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .status-待审批 { 
+            background-color: #fff3cd; 
+            color: #856404;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status-已批准 { 
+            background-color: #d4edda; 
+            color: #155724;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status-已拒绝 { 
+            background-color: #f8d7da; 
+            color: #721c24;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .action-btn {
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+            margin: 1px;
+            min-width: 45px;
+        }
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+        .approve-btn { background-color: #28a745; }
+        .reject-btn { background-color: #dc3545; }
+        .delete-btn { background-color: #dc3545; }
+        .edit-btn { background-color: #ffc107; color: #212529; }
+        .withdraw-btn { background-color: #17a2b8; }
+        
+        .warning-text {
+            color: #856404;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .permission-info {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #ffc107;
+        }
+        .approver-notice {
+            background-color: #d1ecf1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #17a2b8;
+            display: none;
+        }
+        .approver-notice.show {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .form-row, .user-info, .user-login, .admin-login {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-group {
+                min-width: auto;
+                width: 100%;
+            }
+            .schedule-table {
+                font-size: 12px;
+            }
+            .schedule-table th, .schedule-table td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>2025/2026学年上学期 值班调整记录表</h1>
+        
+        <div class="login-section">
+            <div class="user-info">
+                <div class="user-login">
+                    <select id="userType" onchange="toggleLoginType()" style="width: 120px;">
+                        <option value="employee">普通员工</option>
+                        <option value="approver">审批员</option>
+                    </select>
+                    <select id="username" style="width: 130px;">
+                        <option value="">选择员工</option>
+                        <option value="陈秀攻">陈秀攻</option>
+                        <option value="谭诗宇">谭诗宇</option>
+                        <option value="彭梅">彭梅</option>
+                        <option value="庞雯婕">庞雯婕</option>
+                        <option value="杨佳鸿">杨佳鸿</option>
+                        <option value="李海豪">李海豪</option>
+                        <option value="龚楚森">龚楚森</option>
+                        <option value="刘晓欢">刘晓欢</option>
+                    </select>
+                    <button class="btn btn-small" onclick="login()">登录</button>
+                </div>
+                
+                <!-- 审批员登录区域 -->
+                <div class="admin-login" id="adminLogin">
+                    <span style="color: #856404; font-weight: bold;">审批员登录：</span>
+                    <input type="text" id="adminUsername" placeholder="用户名" style="width: 100px;">
+                    <input type="password" id="adminPassword" placeholder="密码" style="width: 100px;">
+                    <button class="btn btn-small btn-warning" onclick="adminLogin()">登录</button>
+                </div>
+                
+                <div id="currentUserInfo" style="display: none;">
+                    <span class="current-user">当前用户: <span id="currentUsername"></span></span>
+                    <span class="role-badge" id="currentRole"></span>
+                    <button class="btn btn-secondary btn-small" onclick="logout()">退出</button>
+                </div>
+            </div>
+            <div class="warning-text">
+                ⚠️ 权限说明：所有员工都可以提交申请和撤回编辑；只有审批员可以审批和删除申请
+            </div>
+            <div class="permission-info">
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <strong>📝 申请权限：</strong>所有值班人员
+                        <br><small>任何值班人员都可以提交调班申请</small>
+                    </div>
+                    <div>
+                        <strong>🔄 撤回编辑：</strong>申请人本人
+                        <br><small>申请人可以撤回待审批的申请重新编辑</small>
+                    </div>
+                    <div>
+                        <strong>✅ 审批权限：</strong>王佳丽、雷萌、李虹瑶
+                        <br><small>需要用专用账号登录才能审批</small>
+                    </div>
+                    <div>
+                        <strong>🗑️ 删除权限：</strong>仅限审批员
+                        <br><small>只有审批员可以删除任何申请记录</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 审批员审批提示 -->
+        <div class="approver-notice" id="approverNotice">
+            <h4>🔰 审批员操作中心</h4>
+            <p>您是指定审批员，具有以下权限：</p>
+            <ul>
+                <li>📝 <strong>提交申请</strong>：可以为自己或他人提交调班申请</li>
+                <li>🔄 <strong>撤回编辑</strong>：可以撤回并编辑自己的申请</li>
+                <li>✅ <strong>审批申请</strong>：可以在下方"调整记录"表格的"操作"栏中审批所有申请</li>
+                <li>🗑️ <strong>删除记录</strong>：可以删除任何申请记录</li>
+                <li>🟢 <strong>批准</strong>：点击绿色"✓ 批准"按钮</li>
+                <li>🔴 <strong>拒绝</strong>：点击红色"✗ 拒绝"按钮</li>
+                <li>🗑️ <strong>删除</strong>：点击红色"删除"按钮</li>
+            </ul>
+        </div>
+
+        <div class="schedule-section">
+            <div class="schedule-title">原始值班表</div>
+            <div class="original-schedule">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>周一</th>
+                            <th>周二</th>
+                            <th>周三</th>
+                            <th>周四</th>
+                            <th>周五</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="time-slot">10:30-13:00</td>
+                            <td>雷萌<br>王佳丽<br>陈秀攻<br>谭诗宇</td>
+                            <td>李虹瑶<br>谭诗宇<br>彭梅</td>
+                            <td>庞雯婕<br>杨佳鸿<br>李虹瑶</td>
+                            <td>李海豪<br>王佳丽<br>雷萌</td>
+                            <td>庞雯婕<br>龚楚森<br>杨佳鸿</td>
+                        </tr>
+                        <tr>
+                            <td class="time-slot">15:00-17:30</td>
+                            <td>王佳丽<br>谭诗宇<br>陈秀攻</td>
+                            <td>龚楚森<br>李海豪<br>刘晓欢<br>彭梅</td>
+                            <td>庞雯婕<br>杨佳鸿<br>李虹瑶</td>
+                            <td>雷萌<br>李海豪<br>刘晓欢<br>彭梅</td>
+                            <td>陈秀攻<br>刘晓欢<br>龚楚森</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="adjustment-form">
+            <div class="schedule-title">值班调整申请</div>
+            
+            <!-- 登录提示 -->
+            <div class="login-prompt" id="loginPrompt">
+                <strong>⚠️ 请先登录</strong><br>
+                您需要先在上方选择用户类型并登录，才能提交申请。
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>申请类型</label>
+                    <select id="adjustmentType">
+                        <option value="调休">调休</option>
+                        <option value="加班">加班</option>
+                        <option value="换班">换班</option>
+                        <option value="补休">补休</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>申请日期</label>
+                    <input type="date" id="requestDate">
+                </div>
+                <div class="form-group">
+                    <label>申请人</label>
+                    <select id="applicant">
+                        <option value="">选择申请人</option>
+                        <option value="雷萌">雷萌</option>
+                        <option value="王佳丽">王佳丽</option>
+                        <option value="陈秀攻">陈秀攻</option>
+                        <option value="谭诗宇">谭诗宇</option>
+                        <option value="李虹瑶">李虹瑶</option>
+                        <option value="彭梅">彭梅</option>
+                        <option value="庞雯婕">庞雯婕</option>
+                        <option value="杨佳鸿">杨佳鸿</option>
+                        <option value="李海豪">李海豪</option>
+                        <option value="龚楚森">龚楚森</option>
+                        <option value="刘晓欢">刘晓欢</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>原值班日期</label>
+                    <input type="date" id="originalDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>原值班时段</label>
+                    <select id="originalTimeSlot">
+                        <option value="10:30-13:00">10:30-13:00</option>
+                        <option value="15:00-17:30">15:00-17:30</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>调整后日期</label>
+                    <input type="date" id="newDate">
+                </div>
+                <div class="form-group">
+                    <label>调整后时段</label>
+                    <select id="newTimeSlot">
+                        <option value="10:30-13:00">10:30-13:00</option>
+                        <option value="15:00-17:30">15:00-17:30</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>代班人员</label>
+                    <select id="substitute">
+                        <option value="">选择代班人员</option>
+                        <option value="雷萌">雷萌</option>
+                        <option value="王佳丽">王佳丽</option>
+                        <option value="陈秀攻">陈秀攻</option>
+                        <option value="谭诗宇">谭诗宇</option>
+                        <option value="李虹瑶">李虹瑶</option>
+                        <option value="彭梅">彭梅</option>
+                        <option value="庞雯婕">庞雯婕</option>
+                        <option value="杨佳鸿">杨佳鸿</option>
+                        <option value="李海豪">李海豪</option>
+                        <option value="龚楚森">龚楚森</option>
+                        <option value="刘晓欢">刘晓欢</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>申请原因</label>
+                    <input type="text" id="reason" placeholder="请填写申请原因">
+                </div>
+            </div>
+            <div class="form-row">
+                <button class="btn" onclick="addRecord()" id="submitBtn">
+                    <span id="submitBtnText">提交申请</span>
+                </button>
+                <button class="btn btn-warning" onclick="updateRecord()" id="updateBtn" style="display: none;">更新申请</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()" id="cancelBtn" style="display: none;">取消编辑</button>
+                <button class="btn export-btn" onclick="exportToCSV()">导出CSV</button>
+            </div>
+        </div>
+
+        <div class="record-table">
+            <div class="schedule-title">调整记录</div>
+            <table id="recordTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">序号</th>
+                        <th style="width: 60px;">申请类型</th>
+                        <th style="width: 80px;">申请日期</th>
+                        <th style="width: 60px;">申请人</th>
+                        <th style="width: 80px;">原值班日期</th>
+                        <th style="width: 80px;">原值班时段</th>
+                        <th style="width: 80px;">调整后日期</th>
+                        <th style="width: 80px;">调整后时段</th>
+                        <th style="width: 60px;">代班人员</th>
+                        <th style="width: 150px;">申请原因</th>
+                        <th style="width: 70px;">状态</th>
+                        <th style="width: 60px;">审批人</th>
+                        <th style="width: 100px;">审批时间</th>
+                        <th style="width: 180px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recordBody">
+                    <!-- 示例数据会在这里显示 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let recordCount = 0;
+        let records = [];
+        let currentUser = null;
+        let currentUserRole = null;
+        let editingRecordId = null;
+
+        // 审批员账号配置
+        const approverAccounts = {
+            'wjl_admin': { password: 'WJL2025!', name: '王佳丽' },
+            'lm_admin': { password: 'LM2025!', name: '雷萌' },
+            'lhy_admin': { password: 'LHY2025!', name: '李虹瑶' }
+        };
+        
+        // 值班人员列表（所有人都可以申请）
+        const staffList = [
+            '雷萌', '王佳丽', '陈秀攻', '谭诗宇', '李虹瑶', 
+            '彭梅', '庞雯婕', '杨佳鸿', '李海豪', '龚楚森', '刘晓欢'
+        ];
+
+        // 页面加载时初始化
+        window.onload = function() {
+            // 设置默认日期为今天
+            document.getElementById('requestDate').valueAsDate = new Date();
+            
+            // 添加示例数据
+            addExampleData();
+            
+            // 初始化UI状态
+            updateUIBasedOnRole();
+            refreshTable();
+        };
+
+        function addExampleData() {
+            recordCount++;
+            const exampleRecord = {
+                id: recordCount,
+                type: '换班',
+                requestDate: '2025-09-18',
+                applicant: '刘晓欢',
+                originalDate: '2025-09-18',
+                originalTimeSlot: '15:00-17:30',
+                newDate: '2025-09-25',
+                newTimeSlot: '10:30-13:00',
+                substitute: '王佳丽',
+                reason: '需要完成相关任务和王佳丽同学换班',
+                status: '待审批',
+                approver: '—',
+                approveTime: '—',
+                submitter: '刘晓欢'
+            };
+            records.push(exampleRecord);
+        }
+
+        function toggleLoginType() {
+            const userType = document.getElementById('userType').value;
+            const adminLogin = document.getElementById('adminLogin');
+            const username = document.getElementById('username');
+            
+            if (userType === 'approver') {
+                adminLogin.classList.add('show');
+                username.style.display = 'none';
+            } else {
+                adminLogin.classList.remove('show');
+                username.style.display = 'block';
+            }
+            
+            // 清空输入
+            document.getElementById('username').value = '';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            
+            if (!username) {
+                alert('请选择员工');
+                return;
+            }
+
+            currentUser = username;
+            currentUserRole = 'employee';
+            
+            completeLogin();
+        }
+
+        function adminLogin() {
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+
+            // 验证审批员账号
+            if (approverAccounts[username] && approverAccounts[username].password === password) {
+                currentUser = approverAccounts[username].name;
+                currentUserRole = 'approver';
+                completeLogin();
+            } else {
+                alert('用户名或密码错误');
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        function completeLogin() {
+            document.getElementById('currentUsername').textContent = currentUser;
+            document.getElementById('currentRole').textContent = getRoleText(currentUserRole);
+            document.getElementById('currentRole').className = `role-badge ${currentUserRole}`;
+            
+            document.querySelector('.user-login').style.display = 'none';
+            document.getElementById('adminLogin').classList.remove('show');
+            document.getElementById('currentUserInfo').style.display = 'flex';
+            
+            // 显示审批员提示
+            if (currentUserRole === 'approver') {
+                document.getElementById('approverNotice').classList.add('show');
+            } else {
+                document.getElementById('approverNotice').classList.remove('show');
+            }
+            
+            // 根据角色启用/禁用功能
+            updateUIBasedOnRole();
+            refreshTable(); // 刷新表格以显示操作按钮
+            
+            const roleText = getRoleText(currentUserRole);
+            const additionalInfo = currentUserRole === 'approver' ? 
+                '\n✅ 您可以提交申请、撤回编辑、审批申请和删除记录' : 
+                '\n📝 您可以提交申请和撤回编辑，等待审批员审批';
+            alert(`登录成功！当前身份：${roleText}${additionalInfo}`);
+        }
+
+        function logout() {
+            currentUser = null;
+            currentUserRole = null;
+            editingRecordId = null;
+            
+            document.querySelector('.user-login').style.display = 'flex';
+            document.getElementById('currentUserInfo').style.display = 'none';
+            document.getElementById('approverNotice').classList.remove('show');
+            
+            // 重置登录表单
+            document.getElementById('userType').value = 'employee';
+            document.getElementById('username').value = '';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminLogin').classList.remove('show');
+            document.getElementById('username').style.display = 'block';
+            
+            // 重置UI
+            resetForm();
+            refreshTable();
+        }
+
+        function getRoleText(role) {
+            const roleMap = {
+                'employee': '普通员工',
+                'approver': '审批员'
+            };
+            return roleMap[role] || '未知';
+        }
+
+        function updateUIBasedOnRole() {
+            const submitBtn = document.getElementById('submitBtn');
+            const loginPrompt = document.getElementById('loginPrompt');
+            const submitBtnText = document.getElementById('submitBtnText');
+            
+            if (currentUser) {
+                // 用户已登录
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                loginPrompt.classList.remove('show');
+                submitBtnText.textContent = '提交申请';
+                
+                // 自动选择当前用户为申请人
+                document.getElementById('applicant').value = currentUser;
+            } else {
+                // 用户未登录
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
+                loginPrompt.classList.add('show');
+                submitBtnText.textContent = '请先登录';
+                
+                // 清空申请人
+                document.getElementById('applicant').value = '';
+            }
+        }
+
+        function resetForm() {
+            // 重置按钮状态
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'none';
+            
+            // 清空表单
+            document.getElementById('adjustmentType').value = '调休';
+            document.getElementById('requestDate').valueAsDate = new Date();
+            document.getElementById('applicant').value = currentUser || '';
+            document.getElementById('originalDate').value = '';
+            document.getElementById('newDate').value = '';
+            document.getElementById('substitute').value = '';
+            document.getElementById('reason').value = '';
+            
+            editingRecordId = null;
+            updateUIBasedOnRole();
+        }
+
+        // 权限控制函数：只允许审批员审批
+        function canApprove(record) {
+            if (!currentUser) return false;
+            return currentUserRole === 'approver';
+        }
+
+        // 权限控制函数：只允许审批员删除
+        function canDelete(record) {
+            if (!currentUser) return false;
+            return currentUserRole === 'approver';
+        }
+
+        // 权限控制函数：申请人可以撤回自己的待审批申请
+        function canWithdraw(record) {
+            if (!currentUser) return false;
+            return currentUser === record.applicant && record.status === '待审批';
+        }
+
+        // 所有登录用户都可以提交申请
+        function canSubmit() {
+            return currentUser !== null;
+        }
+
+        function addRecord() {
+            if (!canSubmit()) {
+                alert('请先登录才能提交申请');
+                return;
+            }
+
+            const type = document.getElementById('adjustmentType').value;
+            const requestDate = document.getElementById('requestDate').value;
+            const applicant = document.getElementById('applicant').value;
+            const originalDate = document.getElementById('originalDate').value;
+            const originalTimeSlot = document.getElementById('originalTimeSlot').value;
+            const newDate = document.getElementById('newDate').value;
+            const newTimeSlot = document.getElementById('newTimeSlot').value;
+            const substitute = document.getElementById('substitute').value;
+            const reason = document.getElementById('reason').value;
+
+            if (!applicant || !originalDate || !reason) {
+                alert('请填写必要信息：申请人、原值班日期、申请原因');
+                return;
+            }
+
+            // 验证申请人是否在值班表中
+            if (!staffList.includes(applicant)) {
+                alert('申请人必须是值班人员');
+                return;
+            }
+
+            // 验证代班人员（如果填写了）
+            if (substitute && !staffList.includes(substitute)) {
+                alert('代班人员必须是值班人员');
+                return;
+            }
+
+            recordCount++;
+            
+            const record = {
+                id: recordCount,
+                type: type,
+                requestDate: requestDate,
+                applicant: applicant,
+                originalDate: originalDate,
+                originalTimeSlot: originalTimeSlot,
+                newDate: newDate || '—',
+                newTimeSlot: newTimeSlot,
+                substitute: substitute || '—',
+                reason: reason,
+                status: '待审批',
+                approver: '—',
+                approveTime: '—',
+                submitter: currentUser
+            };
+            
+            records.push(record);
+            refreshTable();
+            resetForm();
+            
+            alert('申请提交成功，等待审批员审批');
+        }
+
+        function withdrawRecord(id) {
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            if (!canWithdraw(record)) {
+                alert('只能撤回自己的待审批申请');
+                return;
+            }
+
+            if (confirm('确定要撤回这个申请并重新编辑吗？')) {
+                // 填充表单
+                document.getElementById('adjustmentType').value = record.type;
+                document.getElementById('requestDate').value = record.requestDate;
+                document.getElementById('applicant').value = record.applicant;
+                document.getElementById('originalDate').value = record.originalDate;
+                document.getElementById('originalTimeSlot').value = record.originalTimeSlot;
+                document.getElementById('newDate').value = record.newDate === '—' ? '' : record.newDate;
+                document.getElementById('newTimeSlot').value = record.newTimeSlot;
+                document.getElementById('substitute').value = record.substitute === '—' ? '' : record.substitute;
+                document.getElementById('reason').value = record.reason;
+
+                // 切换到编辑模式
+                editingRecordId = id;
+                document.getElementById('submitBtn').style.display = 'none';
+                document.getElementById('updateBtn').style.display = 'inline-block';
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+                document.getElementById('loginPrompt').classList.remove('show');
+
+                // 滚动到表单
+                document.querySelector('.adjustment-form').scrollIntoView({ behavior: 'smooth' });
+                
+                alert('申请已撤回，您可以重新编辑后提交');
+            }
+        }
+
+        function updateRecord() {
+            if (!editingRecordId) return;
+
+            const record = records.find(r => r.id === editingRecordId);
+            if (!record) return;
+
+            const type = document.getElementById('adjustmentType').value;
+            const requestDate = document.getElementById('requestDate').value;
+            const applicant = document.getElementById('applicant').value;
+            const originalDate = document.getElementById('originalDate').value;
+            const originalTimeSlot = document.getElementById('originalTimeSlot').value;
+            const newDate = document.getElementById('newDate').value;
+            const newTimeSlot = document.getElementById('newTimeSlot').value;
+            const substitute = document.getElementById('substitute').value;
+            const reason = document.getElementById('reason').value;
+
+            if (!applicant || !originalDate || !reason) {
+                alert('请填写必要信息：申请人、原值班日期、申请原因');
+                return;
+            }
+
+            // 验证申请人是否在值班表中
+            if (!staffList.includes(applicant)) {
+                alert('申请人必须是值班人员');
+                return;
+            }
+
+            // 验证代班人员（如果填写了）
+            if (substitute && !staffList.includes(substitute)) {
+                alert('代班人员必须是值班人员');
+                return;
+            }
+
+            // 更新记录
+            record.type = type;
+            record.requestDate = requestDate;
+            record.applicant = applicant;
+            record.originalDate = originalDate;
+            record.originalTimeSlot = originalTimeSlot;
+            record.newDate = newDate || '—';
+            record.newTimeSlot = newTimeSlot;
+            record.substitute = substitute || '—';
+            record.reason = reason;
+            record.status = '待审批';
+            record.approver = '—';
+            record.approveTime = '—';
+
+            refreshTable();
+            resetForm();
+            
+            alert('申请更新成功，等待审批员审批');
+        }
+
+        function cancelEdit() {
+            if (confirm('确定要取消编辑吗？未保存的修改将丢失。')) {
+                resetForm();
+            }
+        }
+
+        function approveRecord(id, newStatus) {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            if (!canApprove(record)) {
+                alert('只有审批员才能审批申请');
+                return;
+            }
+
+            if (record.status !== '待审批') {
+                alert('此申请已经被处理过了');
+                return;
+            }
+
+            const confirmText = newStatus === '已批准' ? '批准' : '拒绝';
+            if (confirm(`确定要${confirmText}这个申请吗？\n\n申请人：${record.applicant}\n申请类型：${record.type}\n原因：${record.reason}`)) {
+                record.status = newStatus;
+                record.approver = currentUser;
+                record.approveTime = new Date().toLocaleString('zh-CN');
+                refreshTable();
+                alert(`申请已${confirmText}！`);
+            }
+        }
+
+        function deleteRecord(id) {
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            // 只有审批员可以删除记录
+            if (!canDelete(record)) {
+                alert('只有审批员才能删除记录');
+                return;
+            }
+
+            if (confirm(`确定要删除这条记录吗？\n\n申请人：${record.applicant}\n申请类型：${record.type}\n状态：${record.status}`)) {
+                records = records.filter(r => r.id !== id);
+                
+                // 如果正在编辑被删除的记录，取消编辑
+                if (editingRecordId === id) {
+                    resetForm();
+                }
+                
+                refreshTable();
+                alert('记录已删除');
+            }
+        }
+
+        function refreshTable() {
+            const tbody = document.getElementById('recordBody');
+            tbody.innerHTML = '';
+            
+            records.forEach(record => {
+                const row = tbody.insertRow();
+                row.className = `type-${record.type}`;
+                
+                const canApproveThis = canApprove(record);
+                const canDeleteThis = canDelete(record);
+                const canWithdrawThis = canWithdraw(record);
+                
+                let actionButtons = '';
+                
+                // 审批按钮（仅审批员可见，且状态为待审批）
+                if (record.status === '待审批' && canApproveThis) {
+                    actionButtons += `
+                        <button class="action-btn approve-btn" onclick="approveRecord(${record.id}, '已批准')">✓ 批准</button>
+                        <button class="action-btn reject-btn" onclick="approveRecord(${record.id}, '已拒绝')">✗ 拒绝</button><br>
+                    `;
+                }
+                
+                // 撤回编辑按钮（申请人可见，状态为待审批）
+                if (canWithdrawThis) {
+                    actionButtons += `<button class="action-btn withdraw-btn" onclick="withdrawRecord(${record.id})">🔄 撤回编辑</button><br>`;
+                }
+                
+                // 删除按钮（仅审批员可见）
+                if (canDeleteThis) {
+                    actionButtons += `<button class="action-btn delete-btn" onclick="deleteRecord(${record.id})">🗑️ 删除</button>`;
+                }
+                
+                // 如果没有任何可操作按钮，显示状态信息
+                if (!actionButtons) {
+                    if (!currentUser) {
+                        actionButtons = '<span style="color: #17a2b8; font-weight: bold;">登录后可见操作按钮</span>';
+                    } else if (record.status !== '待审批') {
+                        actionButtons = `<span style="color: #6c757d;">${record.status}</span>`;
+                    } else {
+                        actionButtons = '<span style="color: #6c757d;">无可用操作</span>';
+                    }
+                }
+                
+                row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record.type}</td>
+                    <td>${record.requestDate}</td>
+                    <td>${record.applicant}</td>
+                    <td>${record.originalDate}</td>
+                    <td>${record.originalTimeSlot}</td>
+                    <td>${record.newDate}</td>
+                    <td>${record.newTimeSlot}</td>
+                    <td>${record.substitute}</td>
+                    <td style="max-width: 150px; word-wrap: break-word; text-align: left; padding-left: 8px;">${record.reason}</td>
+                    <td><span class="status-${record.status}">${record.status}</span></td>
+                    <td>${record.approver}</td>
+                    <td style="font-size: 10px;">${record.approveTime}</td>
+                    <td style="min-width: 180px;">${actionButtons}</td>
+                `;
+            });
+        }
+
+        function exportToCSV() {
+            if (records.length === 0) {
+                alert('没有记录可以导出');
+                return;
+            }
+
+            const headers = ['序号', '申请类型', '申请日期', '申请人', '原值班日期', '原值班时段', '调整后日期', '调整后时段', '代班人员', '申请原因', '状态', '审批人', '审批时间'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            records.forEach(record => {
+                const row = [
+                    record.id,
+                    record.type,
+                    record.requestDate,
+                    record.applicant,
+                    record.originalDate,
+                    record.originalTimeSlot,
+                    record.newDate,
+                    record.newTimeSlot,
+                    record.substitute,
+                    `"${record.reason}"`,
+                    record.status,
+                    record.approver,
+                    `"${record.approveTime}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', '值班调整记录表.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
