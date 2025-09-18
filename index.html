@@ -308,7 +308,7 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        .status-indicator.connecting {
+        .status-indicator.local {
             background-color: #fff3cd;
             color: #856404;
             border: 1px solid #ffeaa7;
@@ -349,9 +349,9 @@
         <h1>2025/2026学年上学期 值班调整记录表</h1>
         
         <!-- 连接状态指示器 -->
-        <div class="status-indicator connecting" id="connectionStatus">
-            <div class="loading"></div>
-            <span id="statusText">正在连接数据库...</span>
+        <div class="status-indicator local" id="connectionStatus">
+            <span>⚡</span>
+            <span id="statusText">本地模式运行 - 数据自动保存</span>
         </div>
         
         <div class="login-section">
@@ -391,7 +391,7 @@
             </div>
             <div class="warning-text">
                 ⚠️ 权限说明：所有员工都可以提交申请和撤回编辑；只有审批员可以审批和删除申请
-                <br>🔄 实时同步：所有用户都能看到最新的申请和审批状态
+                <br>💾 本地存储：所有数据都会自动保存到浏览器本地存储
             </div>
             <div class="permission-info">
                 <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
@@ -565,7 +565,7 @@
         </div>
 
         <div class="record-table">
-            <div class="schedule-title">调整记录 <span id="recordCount">(加载中...)</span></div>
+            <div class="schedule-title">调整记录 <span id="recordCount">(共 0 条)</span></div>
             <table id="recordTable">
                 <thead>
                     <tr>
@@ -586,35 +586,14 @@
                     </tr>
                 </thead>
                 <tbody id="recordBody">
-                    <!-- 数据从Firebase加载 -->
+                    <!-- 数据将在这里显示 -->
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-        import { getDatabase, ref, push, onValue, remove, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBqxHH8p1x0_3z8YmQ6kQ-vMvGwWQb9NM8",
-            authDomain: "schedule-management-436010.firebaseapp.com",
-            databaseURL: "https://schedule-management-436010-default-rtdb.firebaseio.com",
-            projectId: "schedule-management-436010",
-            storageBucket: "schedule-management-436010.appspot.com",
-            messagingSenderId: "574869352094",
-            appId: "1:574869352094:web:c5d7b0a6e8b4c2e7b9f1a8"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const recordsRef = ref(database, 'schedule-records');
-
-        // Global variables
+    <script>
+        // 全局变量
         let currentUser = null;
         let currentUserRole = null;
         let editingRecordId = null;
@@ -626,64 +605,51 @@
             'lm_admin': { password: 'LM2025!', name: '雷萌' },
             'lhy_admin': { password: 'LHY2025!', name: '李虹瑶' }
         };
-        
-        // 值班人员列表（所有人都可以申请）
-        const staffList = [
-            '雷萌', '王佳丽', '陈秀攻', '谭诗宇', '李虹瑶', 
-            '彭梅', '庞雯婕', '杨佳鸿', '李海豪', '龚楚森', '刘晓欢'
-        ];
 
-        // 更新连接状态
-        function updateConnectionStatus(status, message) {
-            const statusIndicator = document.getElementById('connectionStatus');
-            const statusText = document.getElementById('statusText');
-            
-            statusIndicator.className = `status-indicator ${status}`;
-            statusText.textContent = message;
-        }
-
-        // 页面加载时初始化
+        // 初始化
         window.onload = function() {
-            // 设置默认日期为今天
+            // 设置默认日期
             document.getElementById('requestDate').valueAsDate = new Date();
             
-            // 监听Firebase数据变化
-            onValue(recordsRef, (snapshot) => {
-                const data = snapshot.val();
-                records = [];
-                
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        records.push({
-                            firebaseId: key,
-                            ...data[key]
-                        });
-                    });
-                    
-                    // 按ID排序
-                    records.sort((a, b) => (a.id || 0) - (b.id || 0));
-                }
-                
-                updateConnectionStatus('connected', `✅ 已连接 - 共 ${records.length} 条记录`);
-                document.getElementById('recordCount').textContent = `(共 ${records.length} 条)`;
-                refreshTable();
-            }, (error) => {
-                console.error('Firebase connection error:', error);
-                updateConnectionStatus('disconnected', '❌ 连接失败，请刷新页面重试');
-            });
+            // 加载本地数据
+            loadLocalData();
             
-            // 初始化UI状态
+            // 更新UI
             updateUIBasedOnRole();
+            refreshTable();
             
-            // 添加示例数据（仅在数据库为空时）
-            setTimeout(() => {
-                if (records.length === 0) {
-                    addExampleData();
-                }
-            }, 2000);
+            // 添加示例数据（如果没有数据）
+            if (records.length === 0) {
+                addExampleRecord();
+            }
         };
 
-        function addExampleData() {
+        // 加载本地数据
+        function loadLocalData() {
+            try {
+                const savedData = localStorage.getItem('scheduleRecords');
+                if (savedData) {
+                    records = JSON.parse(savedData);
+                }
+            } catch (error) {
+                console.error('加载本地数据失败:', error);
+                records = [];
+            }
+        }
+
+        // 保存到本地存储
+        function saveToLocal() {
+            try {
+                localStorage.setItem('scheduleRecords', JSON.stringify(records));
+                return true;
+            } catch (error) {
+                console.error('保存到本地失败:', error);
+                return false;
+            }
+        }
+
+        // 添加示例记录
+        function addExampleRecord() {
             const exampleRecord = {
                 id: 1,
                 type: '换班',
@@ -699,16 +665,15 @@
                 approver: '—',
                 approveTime: '—',
                 submitter: '刘晓欢',
-                timestamp: serverTimestamp()
+                timestamp: new Date().toISOString()
             };
-            
-            push(recordsRef, exampleRecord).catch(error => {
-                console.error('Error adding example data:', error);
-            });
+            records.push(exampleRecord);
+            saveToLocal();
+            refreshTable();
         }
 
-        // Make functions globally available
-        window.toggleLoginType = function() {
+        // 登录相关函数
+        function toggleLoginType() {
             const userType = document.getElementById('userType').value;
             const adminLogin = document.getElementById('adminLogin');
             const username = document.getElementById('username');
@@ -725,9 +690,9 @@
             document.getElementById('username').value = '';
             document.getElementById('adminUsername').value = '';
             document.getElementById('adminPassword').value = '';
-        };
+        }
 
-        window.login = function() {
+        function login() {
             const username = document.getElementById('username').value;
             
             if (!username) {
@@ -739,9 +704,9 @@
             currentUserRole = 'employee';
             
             completeLogin();
-        };
+        }
 
-        window.adminLogin = function() {
+        function adminLogin() {
             const username = document.getElementById('adminUsername').value;
             const password = document.getElementById('adminPassword').value;
             
@@ -759,7 +724,7 @@
                 alert('用户名或密码错误');
                 document.getElementById('adminPassword').value = '';
             }
-        };
+        }
 
         function completeLogin() {
             document.getElementById('currentUsername').textContent = currentUser;
@@ -779,7 +744,7 @@
             
             // 根据角色启用/禁用功能
             updateUIBasedOnRole();
-            refreshTable(); // 刷新表格以显示操作按钮
+            refreshTable();
             
             const roleText = getRoleText(currentUserRole);
             const additionalInfo = currentUserRole === 'approver' ? 
@@ -788,7 +753,7 @@
             alert(`登录成功！当前身份：${roleText}${additionalInfo}`);
         }
 
-        window.logout = function() {
+        function logout() {
             currentUser = null;
             currentUserRole = null;
             editingRecordId = null;
@@ -808,7 +773,7 @@
             // 重置UI
             resetForm();
             refreshTable();
-        };
+        }
 
         function getRoleText(role) {
             const roleMap = {
@@ -846,26 +811,7 @@
             }
         }
 
-        function resetForm() {
-            // 重置按钮状态
-            document.getElementById('submitBtn').style.display = 'inline-block';
-            document.getElementById('updateBtn').style.display = 'none';
-            document.getElementById('cancelBtn').style.display = 'none';
-            
-            // 清空表单
-            document.getElementById('adjustmentType').value = '调休';
-            document.getElementById('requestDate').valueAsDate = new Date();
-            document.getElementById('applicant').value = currentUser || '';
-            document.getElementById('originalDate').value = '';
-            document.getElementById('newDate').value = '';
-            document.getElementById('substitute').value = '';
-            document.getElementById('reason').value = '';
-            
-            editingRecordId = null;
-            updateUIBasedOnRole();
-        }
-
-        // 权限控制函数
+        // 权限检查函数
         function canApprove(record) {
             if (!currentUser) return false;
             return currentUserRole === 'approver';
@@ -885,7 +831,8 @@
             return currentUser !== null;
         }
 
-        window.addRecord = function() {
+        // 添加记录
+        function addRecord() {
             if (!canSubmit()) {
                 alert('请先登录才能提交申请');
                 return;
@@ -906,19 +853,7 @@
                 return;
             }
 
-            // 验证申请人是否在值班表中
-            if (!staffList.includes(applicant)) {
-                alert('申请人必须是值班人员');
-                return;
-            }
-
-            // 验证代班人员（如果填写了）
-            if (substitute && !staffList.includes(substitute)) {
-                alert('代班人员必须是值班人员');
-                return;
-            }
-
-            // 获取当前最大ID
+            // 获取新ID
             const maxId = records.length > 0 ? Math.max(...records.map(r => r.id || 0)) : 0;
             
             const record = {
@@ -936,20 +871,23 @@
                 approver: '—',
                 approveTime: '—',
                 submitter: currentUser,
-                timestamp: serverTimestamp()
+                timestamp: new Date().toISOString()
             };
             
-            push(recordsRef, record).then(() => {
+            records.push(record);
+            
+            if (saveToLocal()) {
                 resetForm();
+                refreshTable();
                 alert('申请提交成功，等待审批员审批');
-            }).catch(error => {
-                console.error('Error adding record:', error);
+            } else {
                 alert('提交失败，请重试');
-            });
-        };
+            }
+        }
 
-        window.withdrawRecord = function(firebaseId) {
-            const record = records.find(r => r.firebaseId === firebaseId);
+        // 撤回记录重新编辑
+        function withdrawRecord(recordId) {
+            const record = records.find(r => r.id === recordId);
             if (!record) return;
 
             if (!canWithdraw(record)) {
@@ -970,7 +908,7 @@
                 document.getElementById('reason').value = record.reason;
 
                 // 切换到编辑模式
-                editingRecordId = firebaseId;
+                editingRecordId = recordId;
                 document.getElementById('submitBtn').style.display = 'none';
                 document.getElementById('updateBtn').style.display = 'inline-block';
                 document.getElementById('cancelBtn').style.display = 'inline-block';
@@ -981,13 +919,14 @@
                 
                 alert('申请已撤回，您可以重新编辑后提交');
             }
-        };
+        }
 
-        window.updateRecord = function() {
+        // 更新记录
+        function updateRecord() {
             if (!editingRecordId) return;
 
-            const record = records.find(r => r.firebaseId === editingRecordId);
-            if (!record) return;
+            const recordIndex = records.findIndex(r => r.id === editingRecordId);
+            if (recordIndex === -1) return;
 
             const type = document.getElementById('adjustmentType').value;
             const requestDate = document.getElementById('requestDate').value;
@@ -1004,20 +943,9 @@
                 return;
             }
 
-            // 验证申请人是否在值班表中
-            if (!staffList.includes(applicant)) {
-                alert('申请人必须是值班人员');
-                return;
-            }
-
-            // 验证代班人员（如果填写了）
-            if (substitute && !staffList.includes(substitute)) {
-                alert('代班人员必须是值班人员');
-                return;
-            }
-
             // 更新记录
-            const updates = {
+            records[recordIndex] = {
+                ...records[recordIndex],
                 type: type,
                 requestDate: requestDate,
                 applicant: applicant,
@@ -1032,31 +960,34 @@
                 approveTime: '—'
             };
 
-            const recordRef = ref(database, `schedule-records/${editingRecordId}`);
-            update(recordRef, updates).then(() => {
+            if (saveToLocal()) {
                 resetForm();
+                refreshTable();
                 alert('申请更新成功，等待审批员审批');
-            }).catch(error => {
-                console.error('Error updating record:', error);
+            } else {
                 alert('更新失败，请重试');
-            });
-        };
+            }
+        }
 
-        window.cancelEdit = function() {
+        // 取消编辑
+        function cancelEdit() {
             if (confirm('确定要取消编辑吗？未保存的修改将丢失。')) {
                 resetForm();
             }
-        };
+        }
 
-        window.approveRecord = function(firebaseId, newStatus) {
+        // 审批记录
+        function approveRecord(recordId, newStatus) {
             if (!currentUser) {
                 alert('请先登录');
                 return;
             }
 
-            const record = records.find(r => r.firebaseId === firebaseId);
-            if (!record) return;
+            const recordIndex = records.findIndex(r => r.id === recordId);
+            if (recordIndex === -1) return;
 
+            const record = records[recordIndex];
+            
             if (!canApprove(record)) {
                 alert('只有审批员才能审批申请');
                 return;
@@ -1069,52 +1000,79 @@
 
             const confirmText = newStatus === '已批准' ? '批准' : '拒绝';
             if (confirm(`确定要${confirmText}这个申请吗？\n\n申请人：${record.applicant}\n申请类型：${record.type}\n原因：${record.reason}`)) {
-                const updates = {
-                    status: newStatus,
-                    approver: currentUser,
-                    approveTime: new Date().toLocaleString('zh-CN')
-                };
+                records[recordIndex].status = newStatus;
+                records[recordIndex].approver = currentUser;
+                records[recordIndex].approveTime = new Date().toLocaleString('zh-CN');
 
-                const recordRef = ref(database, `schedule-records/${firebaseId}`);
-                update(recordRef, updates).then(() => {
+                if (saveToLocal()) {
+                    refreshTable();
                     alert(`申请已${confirmText}！`);
-                }).catch(error => {
-                    console.error('Error approving record:', error);
+                } else {
                     alert('操作失败，请重试');
-                });
+                }
             }
-        };
+        }
 
-        window.deleteRecord = function(firebaseId) {
-            const record = records.find(r => r.firebaseId === firebaseId);
-            if (!record) return;
+        // 删除记录
+        function deleteRecord(recordId) {
+            const recordIndex = records.findIndex(r => r.id === recordId);
+            if (recordIndex === -1) return;
 
-            // 只有审批员可以删除记录
+            const record = records[recordIndex];
+            
             if (!canDelete(record)) {
                 alert('只有审批员才能删除记录');
                 return;
             }
 
             if (confirm(`确定要删除这条记录吗？\n\n申请人：${record.applicant}\n申请类型：${record.type}\n状态：${record.status}`)) {
-                const recordRef = ref(database, `schedule-records/${firebaseId}`);
-                remove(recordRef).then(() => {
+                records.splice(recordIndex, 1);
+                
+                if (saveToLocal()) {
                     // 如果正在编辑被删除的记录，取消编辑
-                    if (editingRecordId === firebaseId) {
+                    if (editingRecordId === recordId) {
                         resetForm();
                     }
+                    refreshTable();
                     alert('记录已删除');
-                }).catch(error => {
-                    console.error('Error deleting record:', error);
+                } else {
                     alert('删除失败，请重试');
-                });
+                }
             }
-        };
+        }
 
+        // 重置表单
+        function resetForm() {
+            // 重置按钮状态
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'none';
+            
+            // 清空表单
+            document.getElementById('adjustmentType').value = '调休';
+            document.getElementById('requestDate').valueAsDate = new Date();
+            document.getElementById('applicant').value = currentUser || '';
+            document.getElementById('originalDate').value = '';
+            document.getElementById('newDate').value = '';
+            document.getElementById('substitute').value = '';
+            document.getElementById('reason').value = '';
+            
+            editingRecordId = null;
+            updateUIBasedOnRole();
+        }
+
+        // 刷新表格
         function refreshTable() {
             const tbody = document.getElementById('recordBody');
             tbody.innerHTML = '';
             
-            records.forEach(record => {
+            // 更新记录计数
+            document.getElementById('recordCount').textContent = `(共 ${records.length} 条)`;
+            
+            // 按ID排序
+            const sortedRecords = [...records].sort((a, b) => (a.id || 0) - (b.id || 0));
+            
+            sortedRecords.forEach(record => {
                 const row = tbody.insertRow();
                 row.className = `type-${record.type}`;
                 
@@ -1127,19 +1085,19 @@
                 // 审批按钮（仅审批员可见，且状态为待审批）
                 if (record.status === '待审批' && canApproveThis) {
                     actionButtons += `
-                        <button class="action-btn approve-btn" onclick="approveRecord('${record.firebaseId}', '已批准')">✓ 批准</button>
-                        <button class="action-btn reject-btn" onclick="approveRecord('${record.firebaseId}', '已拒绝')">✗ 拒绝</button><br>
+                        <button class="action-btn approve-btn" onclick="approveRecord(${record.id}, '已批准')">✓ 批准</button>
+                        <button class="action-btn reject-btn" onclick="approveRecord(${record.id}, '已拒绝')">✗ 拒绝</button><br>
                     `;
                 }
                 
                 // 撤回编辑按钮（申请人可见，状态为待审批）
                 if (canWithdrawThis) {
-                    actionButtons += `<button class="action-btn withdraw-btn" onclick="withdrawRecord('${record.firebaseId}')">🔄 撤回编辑</button><br>`;
+                    actionButtons += `<button class="action-btn withdraw-btn" onclick="withdrawRecord(${record.id})">🔄 撤回编辑</button><br>`;
                 }
                 
                 // 删除按钮（仅审批员可见）
                 if (canDeleteThis) {
-                    actionButtons += `<button class="action-btn delete-btn" onclick="deleteRecord('${record.firebaseId}')">🗑️ 删除</button>`;
+                    actionButtons += `<button class="action-btn delete-btn" onclick="deleteRecord(${record.id})">🗑️ 删除</button>`;
                 }
                 
                 // 如果没有任何可操作按钮，显示状态信息
@@ -1172,7 +1130,8 @@
             });
         }
 
-        window.exportToCSV = function() {
+        // 导出CSV
+        function exportToCSV() {
             if (records.length === 0) {
                 alert('没有记录可以导出');
                 return;
@@ -1182,7 +1141,9 @@
             
             let csvContent = headers.join(',') + '\n';
             
-            records.forEach(record => {
+            const sortedRecords = [...records].sort((a, b) => (a.id || 0) - (b.id || 0));
+            
+            sortedRecords.forEach(record => {
                 const row = [
                     record.id || '—',
                     record.type,
@@ -1210,12 +1171,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        };
-
-        // Make functions available globally
-        window.records = records;
-        window.currentUser = currentUser;
-        window.currentUserRole = currentUserRole;
+        }
     </script>
 </body>
 </html>
